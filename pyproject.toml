@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taala2ken"
+version = "4.0.0"
+description = "USB Security Lock and Authentication system for Windows"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "TAALA-2KEN Team" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Security"
+]
+dependencies = [
+    "wmi>=1.5.1",
+    "pywin32>=306",
+    "pystray>=0.19.5",
+    "Pillow>=10.0.0",
+    "cryptography>=41.0.0",
+    "PyKCS11>=1.5.16",
+    "winotify>=1.1.0"
+]
+
+[project.gui-scripts]
+taala2ken-guard = "taala2ken.cli:main"
