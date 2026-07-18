@@ -87,3 +87,8 @@ def test_find_middleware_dll_missing():
 
 def test_verify_token_challenge_no_pubkey():
     assert pkcs11_auth.verify_token_challenge("") is False
+
+def test_is_device_present_by_prefix():
+    from taala2ken.detection.helpers import is_device_present_by_prefix
+    # Since there are no devices with this prefix, it should return False
+    assert is_device_present_by_prefix("NONEXISTENT_DEVICE_PREFIX") is False

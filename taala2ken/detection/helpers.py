@@ -344,3 +344,39 @@ def setupapi_get_property_multi(dll, h_dev_info, dev_info_ptr, prop_id: int) -> 
         return [s for s in text.split("\x00") if s]
     except Exception:
         return []
+
+def is_device_present_by_prefix(prefix: str) -> bool:
+    """
+    Checks if any present device instance ID starts with the given prefix.
+    Uses SetupAPI DIGCF_PRESENT for instant lookup.
+    """
+    dll = load_setupapi()
+    if dll is None:
+        return False
+
+    h_dev_info = dll.SetupDiGetClassDevsW(None, None, None, 0x00000002 | 0x00000004)
+    if h_dev_info == C.INVALID_HANDLE_VALUE or h_dev_info is None:
+        return False
+
+    prefix_upper = prefix.upper()
+    found = False
+    index = 0
+
+    try:
+        while True:
+            dev_info = C.SP_DEVINFO_DATA()
+            dev_info.cbSize = ctypes.sizeof(dev_info)
+            if not dll.SetupDiEnumDeviceInfo(h_dev_info, index, ctypes.byref(dev_info)):
+                break
+            index += 1
+
+            instance_id = setupapi_get_instance_id(dll, h_dev_info, ctypes.byref(dev_info))
+            if instance_id and instance_id.upper().startswith(prefix_upper):
+                found = True
+                break
+    except Exception as e:
+        log.debug(f"[SETUPAPI] Error in fast presence check: {e}")
+    finally:
+        dll.SetupDiDestroyDeviceInfoList(h_dev_info)
+
+    return found

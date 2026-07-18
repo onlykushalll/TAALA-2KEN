@@ -116,22 +116,29 @@ class USBMonitor:
 
     def _is_authorized_usb_present(self) -> bool:
         try:
-            devices = enumerate_usb_devices()
-            for dev in devices:
-                if dev.fingerprint == self.config.authorized_fingerprint:
-                    # If PKCS#11 signature verification is configured, execute it
-                    if self.config.public_key_der:
-                        try:
-                            from taala2ken.pkcs11_auth import verify_token_challenge
-                            if not verify_token_challenge(self.config.public_key_der):
-                                log.warning("[MONITOR] PKCS#11 challenge verification failed!")
-                                return False
-                        except ImportError:
-                            log.warning("[MONITOR] pkcs11_auth.py not found, bypassing cryptographic challenge!")
-                        except Exception as e:
-                            log.error(f"[MONITOR] PKCS#11 error: {e}")
+            if self.config.is_configured and self.config.pnp_id_prefix:
+                from taala2ken.detection.helpers import is_device_present_by_prefix
+                if not is_device_present_by_prefix(self.config.pnp_id_prefix):
+                    return False
+
+                # If PKCS#11 signature verification is configured, execute it
+                if self.config.public_key_der:
+                    try:
+                        from taala2ken.pkcs11_auth import verify_token_challenge
+                        if not verify_token_challenge(self.config.public_key_der):
+                            log.warning("[MONITOR] PKCS#11 challenge verification failed!")
                             return False
-                    return True
+                    except ImportError:
+                        log.warning("[MONITOR] pkcs11_auth.py not found, bypassing cryptographic challenge!")
+                    except Exception as e:
+                        log.error(f"[MONITOR] PKCS#11 error: {e}")
+                        return False
+                return True
+            else:
+                devices = enumerate_usb_devices()
+                for dev in devices:
+                    if dev.fingerprint == self.config.authorized_fingerprint:
+                        return True
         except Exception as e:
             log.debug(f"USB check error (transient, continuing): {e}")
         return False
