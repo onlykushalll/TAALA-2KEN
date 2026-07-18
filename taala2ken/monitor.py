@@ -143,16 +143,16 @@ class USBMonitor:
 
         if C.ENABLE_WMI_EVENT_WATCHER and _PYTHONCOM_AVAILABLE:
             self._event_watcher.start()
-            log.info("  Event watcher     : ✓ ENABLED")
+            log.info("  Event watcher     : [+] ENABLED")
         else:
-            log.info("  Event watcher     : ✗ DISABLED — polling only")
+            log.info("  Event watcher     : [-] DISABLED -- polling only")
 
         self._usb_present = self._is_authorized_usb_present()
         if self._usb_present:
-            log.info("✓ Authorized USB is present. Monitoring active.")
+            log.info("[+] Authorized USB is present. Monitoring active.")
             self._notify_listeners("PRESENT")
         else:
-            log.warning("⚠ Authorized USB NOT present at startup.")
+            log.warning("[!] Authorized USB NOT present at startup.")
             self._removal_time   = time.monotonic()
             self._lock_triggered = False
             self._notify_listeners("ABSENT", C.REMOVAL_GRACE_PERIOD_SECONDS)
@@ -173,14 +173,14 @@ class USBMonitor:
 
         if now_present:
             if not self._usb_present:
-                log.info("✓ USB detected — authorized device reinserted.")
+                log.info("[+] USB detected -- authorized device reinserted.")
             self._usb_present    = True
             self._removal_time   = None
             self._lock_triggered = False
             self._notify_listeners("PRESENT")
         else:
             if self._usb_present:
-                log.warning(f"✗ USB removed — starting grace period ({C.REMOVAL_GRACE_PERIOD_SECONDS}s)...")
+                log.warning(f"[-] USB removed -- starting grace period ({C.REMOVAL_GRACE_PERIOD_SECONDS}s)...")
                 self._removal_time   = time.monotonic()
                 self._lock_triggered = False
             self._usb_present = False
@@ -190,7 +190,7 @@ class USBMonitor:
                 remaining = C.REMOVAL_GRACE_PERIOD_SECONDS - elapsed
                 self._notify_listeners("GRACE", max(remaining, 0.0))
                 if elapsed >= C.REMOVAL_GRACE_PERIOD_SECONDS:
-                    log.warning("USB removed — locking system")
+                    log.warning("USB removed -- locking system")
                     lock_workstation()
                     self._lock_triggered = True
                     self._notify_listeners("LOCKED")

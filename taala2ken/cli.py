@@ -57,12 +57,12 @@ def first_run_setup(config: AuthConfig) -> bool:
         elif dev.device_type == "SMART CARD / TOKEN":
             mfr     = dev.manufacturer or ""
             name    = getattr(dev, "name", None) or dev.model or "Unknown device"
-            mfr_str = f"  —  {mfr}" if mfr else ""
+            mfr_str = f"  -  {mfr}" if mfr else ""
             print(f"    [{i}] [{src}][SMART CARD / TOKEN]   {name}{mfr_str}")
         else:
             mfr     = dev.manufacturer or ""
             name    = getattr(dev, "name", None) or dev.model or "Unknown device"
-            mfr_str = f"  —  {mfr}" if mfr else ""
+            mfr_str = f"  -  {mfr}" if mfr else ""
             print(f"    [{i}] [{src}][TOKEN / GENERIC USB]  {name}{mfr_str}")
 
         print(f"         PnP ID      : {dev.pnp_device_id[:62]}")
@@ -117,7 +117,7 @@ def first_run_setup(config: AuthConfig) -> bool:
 
 def print_help() -> None:
     print("""
-TAALA-2KEN USB Auth Guard — Windows Security Manager
+TAALA-2KEN USB Auth Guard -- Windows Security Manager
 -----------------------------------------------------------------
 Options:
   python -m taala2ken             Run the monitor (setup if first time)
@@ -126,6 +126,7 @@ Options:
   python -m taala2ken --status    Show current authorization status and connection state
   python -m taala2ken --reset     Clear registered USB configuration
   python -m taala2ken --debug     Run with verbose debug logs
+  python -m taala2ken --dry-run   Run monitor in dry-run mode (detection only, no lock)
   python -m taala2ken --help      Show this help message
 """)
 
@@ -140,6 +141,10 @@ def main() -> None:
         C.DEBUG_MODE = True
         reconfigure()
         log.debug("Debug mode enabled via CLI.")
+
+    if "--dry-run" in args:
+        C.DRY_RUN = True
+        log.info("Dry-run mode enabled. Detection only, system will not be locked.")
 
     _warn_if_not_admin()
     config = AuthConfig()

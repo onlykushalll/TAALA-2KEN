@@ -362,7 +362,7 @@ def _enumerate_smart_card_devices(exclude_pnp_serials: set | None = None) -> lis
                     log.debug(f"[WMI][SC] Error processing reader: {e}")
                     continue
         except AttributeError:
-            log.debug("[WMI][SC] Win32_SmartCardReader not available — keyword fallback only.")
+            log.debug("[WMI][SC] Win32_SmartCardReader not available -- keyword fallback only.")
 
         # Keyword Fallback
         all_pnp = wmi_conn.query("SELECT DeviceID, Name, Description, Manufacturer, PNPDeviceID, Status FROM Win32_PnPEntity")
@@ -649,7 +649,7 @@ def _last_resort_setupapi_dump(
     if dll is None:
         return devices
 
-    log.warning("[LAST RESORT] No devices found — performing FULL device dump...")
+    log.warning("[LAST RESORT] No devices found -- performing FULL device dump...")
     h_dev_info = None
     try:
         h_dev_info = dll.SetupDiGetClassDevsW(None, None, None, C.DIGCF_ALLCLASSES)

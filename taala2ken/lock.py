@@ -62,7 +62,10 @@ def lock_workstation() -> bool:
     Immediately locks the Windows user session.
     Tries the configured lock method first, then falls back.
     """
-    log.warning("⚠  LOCKING WORKSTATION — USB removed or not authorized!")
+    log.warning("[!] LOCKING WORKSTATION -- USB removed or not authorized!")
+    if C.DRY_RUN:
+        log.info("[DRY-RUN] Bypassing lock action (C.DRY_RUN is enabled).")
+        return True
 
     success = False
     if C.LOCK_METHOD == "win32ts":
@@ -77,8 +80,8 @@ def lock_workstation() -> bool:
             success = _lock_via_win32ts()
 
     if success:
-        log.info("✓ Workstation locked successfully.")
+        log.info("[+] Workstation locked successfully.")
     else:
-        log.error("✗ All lock methods failed. Check permissions / Run as Administrator.")
+        log.error("[-] All lock methods failed. Check permissions / Run as Administrator.")
 
     return success
