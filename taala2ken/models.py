@@ -152,20 +152,20 @@ class GenericUSBDevice:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#  SMART CARD / CRYPTO TOKEN DEVICE
+#  KUSHAL TOKEN DEVICE
 # ═════════════════════════════════════════════════════════════════════════════
 
-class SmartCardDevice(GenericUSBDevice):
+class KushalToken(GenericUSBDevice):
     """
-    Represents a smart card reader or USB crypto token.
-    device_type = 'SMART CARD / TOKEN'
+    Represents a smart card reader or USB crypto token (Kushal-TOKEN).
+    device_type = 'Kushal-TOKEN'
     """
 
-    DEVICE_TYPE: str = "SMART CARD / TOKEN"
+    DEVICE_TYPE: str = "Kushal-TOKEN"
 
     def __repr__(self) -> str:
         return (
-            f"SmartCardDevice(name='{self.name}', "
+            f"KushalToken(name='{self.name}', "
             f"mfr='{self.manufacturer}', "
             f"src='{self.detection_source}', "
             f"pnp='{self.pnp_device_id[:50]}', "

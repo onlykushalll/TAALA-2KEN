@@ -14,7 +14,7 @@ import sys
 import ctypes
 from taala2ken import constants as C
 from taala2ken.log import log
-from taala2ken.models import USBDevice, GenericUSBDevice, SmartCardDevice
+from taala2ken.models import USBDevice, GenericUSBDevice, KushalToken
 from taala2ken.detection import helpers as H
 
 # Import wmi conditionally
@@ -69,10 +69,10 @@ def _build_token_device(
     hardware_ids:     list | None = None,
     compatible_ids:   list | None = None,
 ) -> GenericUSBDevice:
-    """Factory to build SmartCardDevice or GenericUSBDevice based on content/attributes."""
+    """Factory to build KushalToken or GenericUSBDevice based on content/attributes."""
     if H.is_epass2003(pnp_device_id, name, hardware_ids, compatible_ids) or \
        H.is_smart_card_by_keywords(name, manufacturer):
-        return SmartCardDevice(
+        return KushalToken(
             pnp_device_id    = pnp_device_id,
             name             = name or "Crypto Token",
             description      = description,
@@ -84,7 +84,7 @@ def _build_token_device(
 
     pnp_upper = pnp_device_id.upper()
     if any(pnp_upper.startswith(pfx) for pfx in ("SCFILTER\\", "SMARTCARD\\", "USBCCID\\", "ROOT\\SMARTCARDREADER")):
-        return SmartCardDevice(
+        return KushalToken(
             pnp_device_id    = pnp_device_id,
             name             = name or "Smart Card Device",
             description      = description,
@@ -97,7 +97,7 @@ def _build_token_device(
     all_ids = (hardware_ids or []) + (compatible_ids or [])
     for id_str in all_ids:
         if H.contains_ccid_identifier(id_str):
-            return SmartCardDevice(
+            return KushalToken(
                 pnp_device_id    = pnp_device_id,
                 name             = name or "CCID Device",
                 description      = description,
@@ -346,7 +346,7 @@ def _enumerate_smart_card_devices(exclude_pnp_serials: set | None = None) -> lis
                         _stats_rejected(pnp_id, "already listed (SC stage 1)")
                         continue
 
-                    device = SmartCardDevice(
+                    device = KushalToken(
                         pnp_device_id    = pnp_id,
                         name             = name or "Smart Card Reader",
                         description      = name or "Smart Card Reader",
@@ -400,7 +400,7 @@ def _enumerate_smart_card_devices(exclude_pnp_serials: set | None = None) -> lis
                     continue
 
                 seen_pnp_ids.add(pnp_id)
-                device = SmartCardDevice(
+                device = KushalToken(
                     pnp_device_id    = pnp_id,
                     name             = name or description or "Smart Card Device",
                     description      = description or name or "",
@@ -752,7 +752,7 @@ def _print_final_verification(all_devices: list) -> None:
     for dev in all_devices:
         src = getattr(dev, "detection_source", "WMI")
         src_counts[src] = src_counts.get(src, 0) + 1
-        if isinstance(dev, SmartCardDevice):
+        if isinstance(dev, KushalToken):
             token_count += 1
             token_details.append(f"    * [{src}] {dev.name}  (pnp={dev.pnp_device_id[:55]})")
 

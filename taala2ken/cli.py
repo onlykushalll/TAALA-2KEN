@@ -54,11 +54,11 @@ def first_run_setup(config: AuthConfig) -> bool:
             label = dev.label or "(no label)"
             model = dev.model or "Unknown model"
             print(f"    [{i}] [{src}][STORAGE]             {model}  /  {label}  ({drive})")
-        elif dev.device_type == "SMART CARD / TOKEN":
+        elif dev.device_type in ("SMART CARD / TOKEN", "Kushal-TOKEN"):
             mfr     = dev.manufacturer or ""
             name    = getattr(dev, "name", None) or dev.model or "Unknown device"
             mfr_str = f"  -  {mfr}" if mfr else ""
-            print(f"    [{i}] [{src}][SMART CARD / TOKEN]   {name}{mfr_str}")
+            print(f"    [{i}] [{src}][Kushal-TOKEN]         {name}{mfr_str}")
         else:
             mfr     = dev.manufacturer or ""
             name    = getattr(dev, "name", None) or dev.model or "Unknown device"
@@ -90,7 +90,7 @@ def first_run_setup(config: AuthConfig) -> bool:
     print(f"  PnP ID        : {selected.pnp_device_id}")
 
     public_key_der = ""
-    if sel_type in ("SMART CARD / TOKEN", "TOKEN"):
+    if sel_type in ("SMART CARD / TOKEN", "Kushal-TOKEN", "TOKEN"):
         try:
             from taala2ken.pkcs11_auth import enroll_token
             confirm_crypt = input("\n  Enroll device with PKCS#11 challenge-response authentication? [y/N]: ").strip().lower()
