@@ -157,11 +157,11 @@ class GenericUSBDevice:
 
 class KushalToken(GenericUSBDevice):
     """
-    Represents a smart card reader or USB crypto token (Kushal-TOKEN).
-    device_type = 'Kushal-TOKEN'
+    Represents a smart card reader or USB crypto token (Kushal_Token).
+    device_type = 'Kushal_Token'
     """
 
-    DEVICE_TYPE: str = "Kushal-TOKEN"
+    DEVICE_TYPE: str = "Kushal_Token"
 
     def __repr__(self) -> str:
         return (

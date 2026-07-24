@@ -85,7 +85,7 @@ def enroll_token() -> str:
         # Load PEM and convert to DER hex format
         pub_key = load_pem_public_key(pem_data.encode('utf-8'))
         der_bytes = pub_key.public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)
-        log.info("[PKCS11] Successfully extracted public key from Kushal-TOKEN during enrollment.")
+        log.info("[PKCS11] Successfully extracted public key from Kushal_Token during enrollment.")
         return der_bytes.hex()
     except Exception as e:
         log.error(f"[PKCS11] Public key enrollment failed: {e}")
