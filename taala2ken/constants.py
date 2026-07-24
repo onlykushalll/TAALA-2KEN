@@ -67,6 +67,7 @@ PKCS11_MIDDLEWARE_PATHS: tuple[str, ...] = (
     r"C:\Program Files\Feitian\PKI\eps2003csp11.dll",
     r"C:\Program Files (x86)\Feitian\PKI\eps2003csp11.dll",
     r"C:\Windows\System32\opensc-pkcs11.dll",
+    r"C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll",
 )
 
 PKCS11_CHALLENGE_SIZE: int = 32  # bytes of random nonce

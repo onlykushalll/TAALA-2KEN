@@ -82,3 +82,4 @@ credential_provider/Release/
 usb_auth_guard.log
 taala2ken/config.json
 Taala2KenAutostart.xml
+usb_auth_guard_config.json

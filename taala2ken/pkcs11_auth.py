@@ -3,28 +3,20 @@ TAALA-2KEN — PKCS#11 Challenge-Response Authentication.
 
 Handles discovery of middleware DLLs, opening PKCS#11 sessions,
 reading certificates/public keys, and performing random challenge-response
-signatures using the token's private key.
+signatures using the token's private key via OpenSC CLI utilities.
 """
 
 import os
 import secrets
+import subprocess
+import tempfile
 from taala2ken import constants as C
 from taala2ken.log import log
 
 try:
-    import PyKCS11
-    from PyKCS11 import LowLevel as KCS
-    _PYKCS11_AVAILABLE = True
-except ImportError:
-    _PYKCS11_AVAILABLE = False
-    PyKCS11 = None
-    KCS = None
-
-try:
+    from cryptography.hazmat.primitives.serialization import load_pem_public_key, load_der_public_key, Encoding, PublicFormat
     from cryptography.hazmat.primitives.asymmetric import padding
     from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.asymmetric import rsa
-    from cryptography.hazmat.primitives.serialization import load_der_public_key
     _CRYPTO_AVAILABLE = True
 except ImportError:
     _CRYPTO_AVAILABLE = False
@@ -40,129 +32,144 @@ def find_middleware_dll() -> str | None:
     return None
 
 
+def find_opensc_tool(tool_name: str) -> str | None:
+    """Finds OpenSC tool executable on Windows."""
+    paths = [
+        r"C:\Program Files\OpenSC Project\OpenSC\tools",
+        r"C:\Program Files (x86)\OpenSC Project\OpenSC\tools"
+    ]
+    for p in paths:
+        full_path = os.path.join(p, tool_name + ".exe")
+        if os.path.exists(full_path):
+            return full_path
+    return None
+
+
+def get_token_pin() -> str:
+    """Gets PIN from environment variable or defaults to 123456."""
+    return os.environ.get("TAALA_2KEN_PIN", "123456")
+
+
 def enroll_token() -> str:
     """
     Enrolls the token by extracting its public key as DER-encoded hex.
     Returns DER public key hex string, or empty string on failure.
     """
-    if not _PYKCS11_AVAILABLE:
-        log.warning("[PKCS11] PyKCS11 library not installed. Cannot enroll token cryptographically.")
+    if not _CRYPTO_AVAILABLE:
+        log.warning("[PKCS11] Cryptography package missing. Cannot enroll token.")
         return ""
 
-    dll_path = find_middleware_dll()
-    if not dll_path:
-        log.warning("[PKCS11] No PKCS#11 middleware DLL found. Install Feitian/ePass2003 drivers.")
+    pkcs15_tool = find_opensc_tool("pkcs15-tool")
+    if not pkcs15_tool:
+        log.warning("[PKCS11] OpenSC pkcs15-tool.exe not found on disk.")
         return ""
 
     try:
-        pkcs11 = PyKCS11.PyKCS11Lib()
-        pkcs11.load(dll_path)
-
-        slots = pkcs11.getSlotList(tokenPresent=True)
-        if not slots:
-            log.warning("[PKCS11] No slot with token present found.")
-            return ""
-
-        slot = slots[0]
-        pin = input("  Enter Token PIN (default is usually 12345678): ").strip()
+        # Run pkcs15-tool --read-public-key 01 to read the public key PEM
+        cmd = [pkcs15_tool, "--read-public-key", "01"]
         
-        session = pkcs11.openSession(slot, PyKCS11.CKF_SERIAL_SESSION)
-        session.login(pin)
+        # Suppress window creation
+        creation_flags = 0
+        if os.name == 'nt':
+            creation_flags = subprocess.CREATE_NO_WINDOW
 
-        public_keys = session.findObjects([
-            (KCS.CKA_CLASS, KCS.CKO_PUBLIC_KEY)
-        ])
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+            creationflags=creation_flags
+        )
+        pem_data = result.stdout
 
-        if not public_keys:
-            log.warning("[PKCS11] No public keys found on token.")
-            session.logout()
-            session.closeSession()
-            return ""
-
-        pub_key_obj = public_keys[0]
-        attrs = session.getAttributeValue(pub_key_obj, [KCS.CKA_MODULUS, KCS.CKA_PUBLIC_EXPONENT])
-        modulus = bytes(attrs[0])
-        exponent = bytes(attrs[1])
-
-        session.logout()
-        session.closeSession()
-
-        if _CRYPTO_AVAILABLE:
-            mod_int = int.from_bytes(modulus, byteorder='big')
-            exp_int = int.from_bytes(exponent, byteorder='big')
-            pub_key = rsa.RSAPublicNumbers(exp_int, mod_int).public_key()
-            from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-            der_bytes = pub_key.public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)
-            return der_bytes.hex()
-        else:
-            log.error("[PKCS11] cryptography library not found. Cannot construct public key DER.")
-            return ""
-
+        # Load PEM and convert to DER hex format
+        pub_key = load_pem_public_key(pem_data.encode('utf-8'))
+        der_bytes = pub_key.public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)
+        log.info("[PKCS11] Successfully extracted public key from Kushal-TOKEN during enrollment.")
+        return der_bytes.hex()
     except Exception as e:
-        log.error(f"[PKCS11] Enrollment failed: {e}")
+        log.error(f"[PKCS11] Public key enrollment failed: {e}")
         return ""
 
 
 def verify_token_challenge(stored_pubkey_der_hex: str) -> bool:
     """
-    Generates a random challenge nonce, signs it using the token's private key,
+    Generates a random challenge nonce, signs it using the token's private key via pkcs11-tool.exe,
     and verifies the signature using the stored public key.
     """
     if not stored_pubkey_der_hex:
         return False
 
-    if not _PYKCS11_AVAILABLE:
-        log.warning("[PKCS11] PyKCS11 missing. Verification skipped.")
-        return False
-
-    dll_path = find_middleware_dll()
-    if not dll_path:
-        log.warning("[PKCS11] PKCS#11 middleware DLL missing. Verification failed.")
-        return False
-
     if not _CRYPTO_AVAILABLE:
-        log.warning("[PKCS11] cryptography package missing. Cannot verify signature.")
+        log.warning("[PKCS11] Cryptography package missing. Cannot verify signature.")
         return False
+
+    pkcs11_tool = find_opensc_tool("pkcs11-tool")
+    if not pkcs11_tool:
+        log.warning("[PKCS11] OpenSC pkcs11-tool.exe not found on disk.")
+        return False
+
+    # Set up temporary challenge and signature files
+    challenge = secrets.token_bytes(C.PKCS11_CHALLENGE_SIZE)
+    pin = get_token_pin()
+
+    challenge_fd, challenge_path = tempfile.mkstemp(suffix=".bin", prefix="t2k_challenge_")
+    sig_fd, sig_path = tempfile.mkstemp(suffix=".bin", prefix="t2k_sig_")
 
     try:
+        os.write(challenge_fd, challenge)
+        os.close(challenge_fd)
+        os.close(sig_fd)
+
+        # Run pkcs11-tool to sign the challenge
+        cmd = [
+            pkcs11_tool,
+            "--sign",
+            "-m", "SHA256-RSA-PKCS",
+            "--pin", pin,
+            "--id", "01",
+            "-i", challenge_path,
+            "-o", sig_path
+        ]
+
+        creation_flags = 0
+        if os.name == 'nt':
+            creation_flags = subprocess.CREATE_NO_WINDOW
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            check=True,
+            creationflags=creation_flags
+        )
+
+        # Read signature from file
+        with open(sig_path, "rb") as f:
+            signature = f.read()
+
+        # Load public key from DER format
         pub_key_bytes = bytes.fromhex(stored_pubkey_der_hex)
         public_key = load_der_public_key(pub_key_bytes)
 
-        challenge = secrets.token_bytes(C.PKCS11_CHALLENGE_SIZE)
-
-        pkcs11 = PyKCS11.PyKCS11Lib()
-        pkcs11.load(dll_path)
-        slots = pkcs11.getSlotList(tokenPresent=True)
-        if not slots:
-            log.warning("[PKCS11] Verification failed: Token removed.")
-            return False
-
-        slot = slots[0]
-        session = pkcs11.openSession(slot, PyKCS11.CKF_SERIAL_SESSION)
-
-        private_keys = session.findObjects([
-            (KCS.CKA_CLASS, KCS.CKO_PRIVATE_KEY)
-        ])
-        if not private_keys:
-            log.warning("[PKCS11] No private keys found on token.")
-            session.closeSession()
-            return False
-
-        priv_key = private_keys[0]
-        mechanism = PyKCS11.Mechanism(KCS.CKM_SHA256_RSA_PKCS, None)
-        signature = bytes(session.sign(priv_key, challenge, mechanism))
-
-        session.closeSession()
-
+        # Verify signature
         public_key.verify(
             signature,
             challenge,
             padding.PKCS1v15(),
             hashes.SHA256()
         )
-        log.debug("[PKCS11] Challenge-response verified successfully.")
+        log.debug("[PKCS11] Challenge-response verified successfully using physical Kushal-TOKEN.")
         return True
 
     except Exception as e:
         log.error(f"[PKCS11] Challenge verification failed: {e}")
         return False
+    finally:
+        # Zero-Residue cleanup of temporary files
+        for path in (challenge_path, sig_path):
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except Exception as cleanup_err:
+                log.debug(f"[PKCS11] Error cleaning up temporary file {path}: {cleanup_err}")
+

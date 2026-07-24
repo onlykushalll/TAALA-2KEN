@@ -56,6 +56,11 @@ class AuthConfig:
         """DER-encoded public key hex string from enrollment for PKCS#11 challenge verification."""
         return self._data.get("public_key_der", "")
 
+    @property
+    def pnp_id_prefix(self) -> str:
+        """PnP ID prefix of the registered USB device."""
+        return self._data.get("pnp_id_prefix", "")
+
     def register_device(self, device, public_key_der: str = "") -> None:
         """Stores the given device's fingerprint as the sole authorized USB."""
         self._data = {
