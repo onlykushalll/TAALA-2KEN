@@ -24,4 +24,4 @@ TAALA-2KEN ("we", "our", or "the software") is an open-source, local hardware se
 ## 3. Contact
 
 For security questions regarding TAALA-2KEN, please open an issue on our GitHub repository:
-https://github.com/onlykushalll/TAALA-2KEN
+the project repository
