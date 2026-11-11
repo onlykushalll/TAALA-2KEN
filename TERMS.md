@@ -32,6 +32,6 @@ IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY WORKSTATION DOWNTIME, LOSS OF DA
 
 ---
 
-## 5. License
+## 5. Commercial Licensing & Rights
 
-TAALA-2KEN is open-source software licensed under the MIT License.
+TAALA-2KEN is proprietary software Copyright (c) 2026 Kushal (@onlykushalll). All rights reserved. This repository is provided exclusively for commercial licensing, technical due diligence, and evaluation under [`LICENSE.md`](LICENSE.md) (Contact: `creatormanager27@gmail.com`).
