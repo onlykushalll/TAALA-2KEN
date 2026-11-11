@@ -6,6 +6,7 @@ compile-time-equivalent value in the project.
 """
 
 import ctypes
+import os
 from pathlib import Path
 
 
@@ -22,8 +23,9 @@ DRY_RUN: bool = False
 # ═════════════════════════════════════════════════════════════════════════════
 
 PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
-CONFIG_FILE: Path = PROJECT_ROOT / "usb_auth_guard_config.json"
-LOG_FILE: Path | None = PROJECT_ROOT / "usb_auth_guard.log"
+CONFIG_FILE: Path = Path(os.environ["TAALA_CONFIG_PATH"]) if os.environ.get("TAALA_CONFIG_PATH") else PROJECT_ROOT / "usb_auth_guard_config.json"
+_log_env = os.environ.get("TAALA_LOG_PATH")
+LOG_FILE: Path | None = (Path(_log_env) if _log_env else None) if _log_env is not None else (PROJECT_ROOT / "usb_auth_guard.log")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -61,7 +63,8 @@ PIPE_TIMEOUT_MS: int = 5000
 #  PKCS#11 MIDDLEWARE PATHS (tried in order)
 # ═════════════════════════════════════════════════════════════════════════════
 
-PKCS11_MIDDLEWARE_PATHS: tuple[str, ...] = (
+_extra_pkcs11 = (os.environ["TAALA_PKCS11_LIB"],) if os.environ.get("TAALA_PKCS11_LIB") else ()
+PKCS11_MIDDLEWARE_PATHS: tuple[str, ...] = _extra_pkcs11 + (
     r"C:\Windows\System32\eps2003csp11.dll",
     r"C:\Windows\System32\eTPKCS11.dll",
     r"C:\Program Files\Feitian\PKI\eps2003csp11.dll",
